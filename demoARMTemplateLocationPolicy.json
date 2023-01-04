@@ -1,0 +1,42 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "policyID": {
+            "type": "string",
+            "metadata": {
+                "description": "The id of the policy to be applied"
+            }
+        },
+        "policyName": {
+            "type": "string",
+            "metadata": {
+                "description": "The name of the policy to be applied"
+            }
+        }
+    },
+    "functions": [],
+    "variables": {},
+    "resources": [
+        {
+            // Apply the allowed locations policy with two accepted values
+            "type": "Microsoft.Authorization/policyAssignments",
+            "apiVersion": "2022-06-01",
+            "name": "[parameters('policyName')]",
+            "properties": {
+
+                "displayName": "[concat('Applied Policy ', parameters('policyName'))]",
+                "parameters": {
+                    "location":{
+                        "value": [
+                            "south central us",
+                            "east us"
+                        ]
+                    }
+                },
+                "policyDefinitionId": "[parameters('policyID')]"
+            }
+        }
+    ],
+    "outputs": {}
+}

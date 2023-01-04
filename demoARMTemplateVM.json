@@ -1,0 +1,133 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "VM_Name": {
+            "type": "string",
+            "metadata": {
+                "description": "Name of the VM to be created"
+            }
+        },
+        "storageName": {
+            "type": "string",
+            "metadata": {
+                "description": "the name of the storage acc"
+            }
+        },
+        "VNetName": {
+            "type": "string",
+            "metadata": {
+                "description": "the name of the vnet in which the vm will be placed"
+            }
+        },
+        "SubnetName": {
+            "type": "string",
+            "metadata": {
+                "description": "the name of the subnet in which the vm will be placed"
+            }
+        }
+    },
+    "functions": [],
+    // Initialise the required variables which will be used trhoughout the template.
+    "variables": {
+        // "subnetID": "[concat('/subscriptions/', parameters('subscriptionID'), '/resourceGroups/', resourceGroup().name, '/providers/Microsoft.Network/virtualNetworks/', parameters('VNetName'), '/subnets/', parameters('SubnetName'))]"
+        "subnetID": "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('VNetName'), parameters('SubnetName'))]",
+        "publicIPName": "[concat(parameters('VM_Name'), '-PublicIP' )]",
+        "networkInterfaceName": "[concat(parameters('VM_Name'), '-NetworkInterface')]",
+        "OSDiskName": "[concat(parameters('VM_Name'), '-OSDisk')]"
+    },
+    "resources": [
+    // The public IP address of the VM
+    {
+        "name": "[variables('publicIPName')]",
+        "type": "Microsoft.Network/publicIPAddresses",
+        "apiVersion": "2020-11-01",
+        "location": "[resourceGroup().location]",
+        "tags": {
+            "displayName": "PublicIPAddress"
+        },
+        "properties": {
+            "publicIPAllocationMethod": "Dynamic",
+            "dnsSettings": {
+                "domainNameLabel": "[toLower(concat('dns-', parameters('VM_Name')))]"
+            }
+        }
+    },
+    // Create the network interface for the VM
+    {
+        "name": "[variables('networkInterfaceName')]",
+        "type": "Microsoft.Network/networkInterfaces",
+        "apiVersion": "2020-11-01",
+        "location": "[resourceGroup().location]",
+        "dependsOn": [
+            "[resourceId('Microsoft.Network/publicIPAddresses', variables('publicIPName'))]"
+        ],
+        "properties": {
+            "ipConfigurations": [
+                {
+                    "name": "ipConfig1",
+                    "properties": {
+                        "privateIPAllocationMethod": "Dynamic",
+                        "publicIPAddress": {
+                            "id": "[resourceId('Microsoft.Network/publicIPAddresses', variables('publicIPName'))]"
+                        },
+                        "subnet": {
+                            "id": "[variables('subnetID')]"
+                        }
+                    }
+                }
+            ]
+        }
+    },
+    // Create the ubuntu VM itself
+    {
+        "name": "[parameters('VM_Name')]",
+        "type": "Microsoft.Compute/virtualMachines",
+        "apiVersion": "2021-03-01",
+        "location": "[resourceGroup().location]",
+        "dependsOn": [
+            "[resourceId('Microsoft.Network/networkInterfaces', variables('networkInterfaceName'))]"
+        ],
+        "properties": {
+            "hardwareProfile": {
+                "vmSize": "Standard_A2_v2"
+            },
+            "osProfile": {
+                // set the OS profile of the VM
+                "computerName": "[parameters('VM_Name')]",
+                "adminUsername": "alerusko",
+                "adminPassword": "adminPassword123!"
+            },
+            "storageProfile": {
+                "imageReference": {
+                    // set the OS image used for the ubuntu VM
+                    "publisher": "Canonical",
+                    "offer": "UbuntuServer",
+                    "sku": "16.04-LTS",
+                    "version": "latest"
+                },
+                "osDisk": {
+                    // set the OS disk of the VM
+                    "name": "[variables('OSDiskName')]",
+                    "caching": "ReadWrite",
+                    "createOption": "FromImage"
+                }
+            },
+            "networkProfile": {
+                // Set the vm's network interface
+                "networkInterfaces": [
+                    {
+                        "id": "[resourceId('Microsoft.Network/networkInterfaces', variables('networkInterfaceName'))]"
+                    }
+                ]
+            },
+            "diagnosticsProfile": {
+                "bootDiagnostics": {
+                    "enabled": true,
+                    "storageUri": "[reference(resourceId('Microsoft.Storage/storageAccounts/', parameters('storageName')), '2022-05-01').primaryEndpoints.blob]"
+                }
+            }
+        }
+    }],
+    "outputs": {}
+}
