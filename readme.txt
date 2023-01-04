@@ -7,6 +7,8 @@ There are 4 Json Arm-template files which do the following:
     - demoARMTemplateVM.json: Template for creating a VM and all its additional required resources such as network interface and public IP address.
     - demoARMTemplateLocationPolicy: Template for assigning an Allowed Locations policy to the resource group and all resources in it. 
         Unfortunately this policy template could not be tested, since my burner account does not have the permission to write policies and produces an error.
+These arm template files can be used on their own to deploy the resources through the azure CLI, or with the blueprint file described below.
+
 
 There is 1 bicep file which stores the blueprint code. It uses the ARM templates for the resources to do the following:
    1) Create a resource group. 
